@@ -1,0 +1,27 @@
+
+编译vim configure 执行prefix
+
+https://github.com/prabirshrestha/vim-lsp
+默认示例是pysl
+
+https://github.com/palantir/python-language-server
+安装修改手改setup.py的依赖项目
+
+感觉不好用
+
+
+https://github.com/prabirshrestha/vim-lsp/wiki/Servers-Go
+go-langserver
+很好用
+
+
+http://vim.wikia.com/wiki/256_colors_in_vim
+
+
+事件系统
+用户自定义事件
+au User lsp_server_init call s:server_initialized()
+au User lsp_server_exit call s:server_exited()
+
+
+https://code.visualstudio.com/docs/editor/editingevolved

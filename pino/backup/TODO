@@ -1,0 +1,11 @@
+
+- vim setup
+    vim-lsp
+    async*
+
+- a general language server 
+    base framework
+    language plugin support
+
+
+

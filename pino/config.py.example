@@ -1,0 +1,39 @@
+# encoding: utf8
+
+import os
+
+host = "localhost"
+port = 9999
+address = host, port
+
+project_info = {
+    "test":{
+        "sources": [
+            r"E:\test",
+        ],
+    },
+    "vim":{
+        "sources": [
+            r"C:\Users\prim\.vim\bundle",
+        ],
+    },
+    "py27stdlib":{
+        "sources": [
+            r"E:\github\pino",
+            r"C:\Python27\Lib",
+        ],
+        "skip_directories": [
+            r"C:\Python27\Lib\site-packages",
+        ],
+    },
+}
+
+base = r"E:\github"
+for name in os.listdir(base):
+    project_name = name
+    git = r"%s\%s\.git" % (base, name)
+    name = r"%s\%s" % (base, name)
+    if os.path.isdir(name) and os.path.isdir(git):
+        if project_name not in project_info:
+            project_info[project_name] = {"root": name}
+

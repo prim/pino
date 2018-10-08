@@ -1,0 +1,85 @@
+
+
+文档管理
+    编辑中
+    硬盘文件
+    内存文件
+        内存盘的限制
+
+分词算法
+
+检索系统
+
+
+编辑器
+    read post
+    write post
+    buf win leave
+    insert leave
+    cursor moved 
+
+    输入
+        自动补全
+        自动同步文本
+    跳转
+    hover
+
+
+ide 
+    definition
+    typedefinition
+    implementation
+    referentces
+    
+    rename
+    
+    format
+    range format
+    
+    document symbol
+        符号列表
+        类树
+    workspace symbol
+    
+    diagnostices
+    error
+    
+
+
+plugin enalbe
+    event setup
+plugin disable
+
+what is signs
+help signs
+
+vim lsp {
+    server {
+        capabilities
+        run status
+
+    }
+}
+
+vim async comple {
+    source
+}
+vim async complete - lsp 会自动注册 complete的source
+
+
+vim {{{
+
+preview
+    https://github.com/skywind3000/vim-preview
+quick fix
+
+command line
+status line
+
+table name
+window name
+
+linenum
+
+
+}}}
