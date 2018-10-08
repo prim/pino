@@ -63,7 +63,7 @@ class JsonRpcProtocol(protocol.Protocol):
                         )
 
                 begin = e
-                self.buffer = data[e:]
+                self.buffer = binary[e:]
             else:
                 break
 

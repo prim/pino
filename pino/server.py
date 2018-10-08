@@ -7,7 +7,6 @@ from pino import PinoProtocol
 from lsp import LanguageServerProtocol
 
 def main():
-
     init_project()
 
     lsp_port = 9999

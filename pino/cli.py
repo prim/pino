@@ -54,7 +54,7 @@ class ProxyClient(protocol.Protocol):
                 self.handleJsonRpcRequest(binary[b:e])
 
                 begin = e
-                self.buffer = data[e:]
+                self.buffer = binary[e:]
             else:
                 break
 

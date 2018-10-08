@@ -175,3 +175,14 @@ for v in root.match_name("z"):
         file.write('[Search results for pattern: "%s"]\n' % pattern)
         file.write("".join(ret))
         file.close()
+
+    import trie
+    lvs = {}
+    a = trie.Trie(lvs)
+    a.add_name("SOCK_A", 1, lvs)
+    a.add_name("SOCK_B", 1, lvs)
+    a.add_name("SOCK_C", 1, lvs)
+    print(a.get_name("SOCK", False).node_name())
+    print(a.get_name("SOCK_", False).node_name())
+
+

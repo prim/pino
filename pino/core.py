@@ -25,26 +25,9 @@ import fnmatch
 default_name_chars = string.ascii_letters + string.digits + "_"
 default_skip_directories = [".svn", ".git", ]
 default_file_black_list = [
-    # ".pyc",
+    ".o",
+    ".pyc",
 ]
-default_file_white_list = [
-    ".h", ".c",
-    ".hpp", ".cpp", ".cc",
-    ".cs",
-    ".py", 
-    ".sh", 
-    ".rs",
-    ".vim",
-    ".lua",
-    ".go",
-    ".js", ".json",
-
-    ".md", ".txt",
-    "README",
-    "INSTALL",
-    "DOCUMENT",
-]
-
 
 class Project(object):
 
@@ -60,6 +43,8 @@ class Project(object):
 
         self.encodings = ["utf8", "gbk", "ascii"]
         self._()
+
+        log.info("new project %s %s", name, self.__dict__)
 
         self.inited = False
         if init:
@@ -99,7 +84,7 @@ class Project(object):
     def find(klass, path):
         log.info("find_project %s", path)
         project = None
-        for p in projects.values():
+        for p in klass.projects.values():
             log.info("find_project name %s %s", p.name, path)
             if p.name == path:
                 project = p
@@ -109,6 +94,7 @@ class Project(object):
                 if path.startswith(sp):
                     project = p
                     break
+                print(1)
             if project: break
         return project
 
@@ -137,7 +123,8 @@ class Project(object):
             from os.path import join, isfile, isdir
             for name in os.listdir(base):
                 path = join(base, name)
-                if isdir(path) and path.replace("/", "\\") not in self.skip_directories:
+                path = path.replace("/", "\\")
+                if isdir(path) and path not in self.skip_directories:
                     f(path)
                 if isfile(path):
                     _, file_extension = splitext(name)
@@ -234,6 +221,7 @@ class Project(object):
                         count += 1
 
                     if char == "\n":
+                        # log.debug("%s %s", line, words)
                         for i, t in enumerate(words):
                             if t in language_keywords:
                                 continue
@@ -252,9 +240,11 @@ class Project(object):
                         first = ""
                         line += 1
                         words = []
+            # print("---", len(word))
 
     def reinit(self):
-        pass
+        self._()
+        self.init()
 
     def stat(self):
         print("word_length_stat")
@@ -271,19 +261,20 @@ class Project(object):
 def init_project():
     for name, info in project_info.items():
         root = info.get("root", "")
-        root = root.replace("\\", "/")
+        # root = root.replace("\\", "/")
         sources = info.get("sources", [])
         assert(root or sources)
         if not sources and root not in sources:
             sources.insert(0, root)
         for i, v in enumerate(sources):
-            sources[i] = v.replace("\\", "/")
+            sources[i] = v
+            # sources[i] = v.replace("\\", "/")
         kw = {
             "name":name,
             "sources":sources,
             "init":info.get("init", False),
             "skip_directories":info.get("skip_directories", default_skip_directories),
-            "file_white_list":info.get("file_white_list", default_file_white_list),
+            "file_white_list":info.get("file_white_list", []),
             "file_black_list":info.get("file_black_list", default_file_black_list),
         }
         Project.projects[name] = Project(**kw)
