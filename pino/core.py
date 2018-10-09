@@ -67,14 +67,28 @@ class Project(object):
 
         self.word_length_stat = {}
 
-    def is_long_word(self, word):
-        return len(word) >= 38
-
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return self.name
+
+    def is_long_word(self, word):
+        return len(word) >= 38
+
+    @classmethod
+    def new(klass, name, root):
+        assert(name not in klass.projects)
+        kw = {
+            "name": name,
+            "sources": [root],
+            "init": False, 
+            "skip_directories": default_skip_directories,
+            "file_white_list": [],
+            "file_black_list": default_file_black_list,
+        }
+        klass.projects[name] = p = Project(**kw)
+        return p
 
     @classmethod
     def get(klass, name):
@@ -82,19 +96,18 @@ class Project(object):
 
     @classmethod
     def find(klass, path):
-        log.info("find_project %s", path)
+        # log.info("find_project %s", path)
         project = None
         for p in klass.projects.values():
-            log.info("find_project name %s %s", p.name, path)
+            # log.info("find_project name %s %s", p.name, path)
             if p.name == path:
                 project = p
                 break
             for sp in p.sources:
-                log.info("find_project sources %s %s", sp, path)
+                # log.info("find_project sources %s %s", sp, path)
                 if path.startswith(sp):
                     project = p
                     break
-                print(1)
             if project: break
         return project
 
@@ -114,7 +127,6 @@ class Project(object):
 
     def init(self):
         log.info("%s init" , self)
-        from os.path import splitext
 
         white_list = self.file_white_list
         black_list = self.file_black_list
@@ -124,7 +136,7 @@ class Project(object):
             for name in os.listdir(base):
                 path = join(base, name)
                 path = path.replace("/", "\\")
-                if isdir(path) and path not in self.skip_directories:
+                if isdir(path) and path not in self.skip_directories and os.path.basename(path) not in self.skip_directories:
                     f(path)
                 if isfile(path):
                     _, file_extension = splitext(name)
@@ -206,8 +218,6 @@ class Project(object):
             line = 0
             word = ""
             words = []
-            count = 0
-            first = ""
             b, e = 0, 0
             for char in source:
                 if char in name_chars or ord(char) > 0xff:
@@ -215,10 +225,7 @@ class Project(object):
                 else:
                     if word:
                         words.append(word)
-                        if count == 0:
-                            first = word
                         word = ""
-                        count += 1
 
                     if char == "\n":
                         # log.debug("%s %s", line, words)
@@ -226,7 +233,7 @@ class Project(object):
                             if t in language_keywords:
                                 continue
                             if is_long_word(t):
-                                if first in ("def", "class"):
+                                if words[0] in ("def", "class") and i == 1:
                                     self.long_word_definition.setdefault(t, {}).setdefault(file_id, set()).add(line)
                                 self.long_words.setdefault(t, {}).setdefault(file_id, set()).add(line)
                             else:
@@ -236,11 +243,8 @@ class Project(object):
                                     length = len(t)
                                     word_length_stat[length] = word_length_stat.get(length, 0) + 1
 
-                        count = 0
-                        first = ""
                         line += 1
                         words = []
-            # print("---", len(word))
 
     def reinit(self):
         self._()
@@ -263,6 +267,8 @@ def init_project():
         root = info.get("root", "")
         # root = root.replace("\\", "/")
         sources = info.get("sources", [])
+        if type(sources) is str:
+            sources = [sources]
         assert(root or sources)
         if not sources and root not in sources:
             sources.insert(0, root)

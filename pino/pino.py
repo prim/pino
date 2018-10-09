@@ -4,6 +4,7 @@ from core import Project
 
 import log
 import core
+import os.path
 
 class PinoProtocolHandler(object):
 
@@ -39,6 +40,21 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
             project = Project.find(cwd)
         if not project and cwf:
             project = Project.find(cwf)
+        if not project:
+            if os.path.isfile(cwf):
+                cwd = os.path.dirname(cwf)
+                while True:
+                    p = os.path.join(cwd, ".git")
+                    print(1, cwd, p)
+                    if os.path.isdir(p):
+                        name = os.path.basename(cwd)
+                        log.info("new proejct %s", name)
+                        project = Project.new(name, cwd)
+                        break
+                    new = os.path.dirname(cwd)
+                    if new == cwd:
+                        break
+                    cwd = new
         if project is old_project:
             return 
         self.project = project
@@ -148,6 +164,11 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
         # quickfix = "\n".join(ret)
         # return quickfix
         return ret
+
+    def init(self, params):
+        log.debug("%s init %s", self, params)
+        self._(params)
+        self.project.init()
 
     def reinit(self, params):
         log.debug("%s reinit %s", self, params)
