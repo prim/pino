@@ -27,6 +27,7 @@ default_skip_directories = [".svn", ".git", ]
 default_file_black_list = [
     ".o",
     ".pyc",
+    ".log",
 ]
 
 class Project(object):
@@ -141,7 +142,7 @@ class Project(object):
                 if isfile(path):
                     _, file_extension = splitext(name)
                     if black_list and file_extension in black_list:
-                        log.debug("%s init black %s", self, name)
+                        log.debug("%s init black %s %s", self, name, black_list)
                     elif not white_list or file_extension in white_list:
                         self.parse_file(file_extension, path)
                     else:
@@ -275,11 +276,15 @@ def init_project():
         for i, v in enumerate(sources):
             sources[i] = v
             # sources[i] = v.replace("\\", "/")
+        skip = info.get("skip_directories", default_skip_directories)
+        for t in default_skip_directories[:]:
+            if t not in skip:
+                skip.append(t)
         kw = {
             "name":name,
             "sources":sources,
             "init":info.get("init", False),
-            "skip_directories":info.get("skip_directories", default_skip_directories),
+            "skip_directories":skip,
             "file_white_list":info.get("file_white_list", []),
             "file_black_list":info.get("file_black_list", default_file_black_list),
         }

@@ -1,2 +1,2 @@
-"C:\Users\prim\AppData\Local\Programs\Python\Python37\python" pino server
+"C:\Users\hcjn0770\AppData\Local\Programs\Python\Python37-32\python" pino server
 pause

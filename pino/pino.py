@@ -40,7 +40,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
             project = Project.find(cwd)
         if not project and cwf:
             project = Project.find(cwf)
-        if not project:
+        if not project and 0:
             if os.path.isfile(cwf):
                 cwd = os.path.dirname(cwf)
                 while True:
