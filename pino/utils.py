@@ -1,7 +1,7 @@
 
 def uri_to_path(uri):
     if uri.startswith(r"file:///"):
-        return uri[8:]
+        return uri[8:].replace("%3A", ":")
     return uri
 
 def path_to_uri(path):

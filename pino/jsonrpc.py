@@ -53,7 +53,8 @@ class JsonRpcProtocol(protocol.Protocol):
                 e = b + cl
 
                 response = self.handleJsonRpcRequest(binary[b:e])
-                log.info("resp %s", str(response)[:80])
+                # log.info("resp %s", str(response)[:1080])
+                log.info("resp %s", str(response))
                 if response: 
                     biny = json.dumps(response).encode("utf8")
                     self.transport.write(
