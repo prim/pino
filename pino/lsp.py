@@ -53,20 +53,29 @@ class Documents(object):
         content = self.documents[uri]
         l = c = 0
 
+        import string
+        default_name_chars = string.ascii_letters + string.digits + "_"
+
         word = ""
         for char in content:
-            if char == "\n":
-                c = 0
-                l += 1
+            # print(repr(char), word, c, l)
 
             if l == line:
-                if char in "abcde":
+                if char in default_name_chars:
                     word += char
                 else:
                     if c >= character:
                         return word
                     word = ""
+
             c += 1
+
+            if char == "\n":
+                c = 0
+                l += 1
+                word = ""
+
+        return word
 
 class LanguageServerProtocolHandler(object):
 
@@ -81,16 +90,30 @@ class LanguageServerProtocolHandler(object):
         return "LSP(%s)" % (self.project.name if self.project else "")
 
     # private
-    def _set_project(self, path_or_uri):
-        return 
+    def _(self, params):
         old_project = self.project
-        project = Project.find(path_or_uri)
-        if project is None:
-            project = Project.find_project(uri_to_path(path_or_uri))
+        project = None
+
+        root_path = params.get("rootPath")
+        if root_path:
+            pass
+        root_uri = params.get("rootUri")
+        if root_uri:
+            pass
+        folders = params.get("wordspaceFolders")
+        if folders:
+            pass
+
+        uri = params.get("textDocument", {}).get("uri")
+        if uri:
+            path = uri_to_path(uri)
+            project = Project.find(path)
+
         if project is old_project:
             return 
         self.project = project
-        log.info("set project old %s new %s", old_project, project)
+        project.init_or_load()
+        log.info("%s set project old %s new %s", self, old_project, project)
 
     def _solveTextDocumentPostionParams(self, params):
         return self.documents._solveTextDocumentPostionParams(params)
@@ -99,7 +122,7 @@ class LanguageServerProtocolHandler(object):
     #========================================================
     def initialize(self, params):
         log.info("%s initialize %s", self, params)
-        # self._set_project(params.get("rootPath", ""))
+        self._(params) 
         return {'capabilities': self._capabilities()}
 
     def initialized(self, params):
@@ -168,31 +191,54 @@ class LanguageServerProtocolHandler(object):
     #========================================================
     def textDocument_didOpen(self, params):
         log.info("%s textDocument_didOpen %s", self, params)
+        self._(params)
         self.documents.open(params["textDocument"]["uri"])
 
     def textDocument_didClose(self, params):
         log.info("%s textDocument_didClose %s", self, params)
+        self._(params)
         self.documents.close(params["textDocument"]["uri"])
 
     def textDocument_didChange(self, params):
         log.info("%s textDocument_didChange %s", self, params)
+        self._(params)
         self.documents.change(params["textDocument"]["uri"], params["contentChanges"][0]["text"])
 
     def textDocument_willSave(self, params):
+        self._(params)
         return None
 
     def textDocument_willSaveWaitUntil(self, params):
+        self._(params)
         return []
 
     def textDocument_didSave(self, params):
+        self._(params)
         return []
 
     # Language Features
     #========================================================
     def textDocument_completion(self, params):
         log.info("%s textDocument_completion %s", self, params)
-        import time
-        time.sleep(3)
+        self._(params)
+        p = self.project
+        if not p:
+            return 
+        symbol = self._solveTextDocumentPostionParams(params)
+        log.info("%s textDocument_completion %s", self, symbol)
+        if not symbol:
+            return 
+
+        l = []
+        maxn = 10000000
+        root = p.root.get_name(symbol, False)
+        for v in root.all_children():
+            name = v.node_name()
+            l.append({"label":name})
+            if len(l) >= maxn:
+                break
+        return l
+
         return [
             {"label":"a"},
             {"label":"ab"},
@@ -205,10 +251,6 @@ class LanguageServerProtocolHandler(object):
         if not p:
             return 
         p.init_or_load()
-        symbol = self._solveTextDocumentPostionParams(params)
-        log.info("%s textDocument_completion %s", self, symbol)
-        if not symbol:
-            return 
         l = []
         result = {"isIncomplete": True, "items":l}
         maxn = 10
