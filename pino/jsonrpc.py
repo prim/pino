@@ -93,8 +93,9 @@ class JsonRpcProtocol(protocol.Protocol):
 
         try:
             result = func(message.get("params", {}))
+            return {"jsonrpc": self.JSON_RPC_VERSION, "id": message_id, "result":result}
         except Exception as e:
-            result = traceback.format_exc()
-            log.error("handleJsonRpcRequest error %s", result)
-        return {"jsonrpc": self.JSON_RPC_VERSION, "id": message_id, "result":result}
+            error = traceback.format_exc()
+            log.error("handleJsonRpcRequest error %s", error)
+            return {"jsonrpc": self.JSON_RPC_VERSION, "id": message_id, "error":error}
 

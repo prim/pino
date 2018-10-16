@@ -23,19 +23,35 @@ class TextDocumentSyncKind:
     FULL = 1
     INCREMENTAL = 2
 
+def lines(content):
+    return content.split('\n')
 
 class Documents(object):
 
     def __init__(self):
         self.documents = {}
 
+    def get(self, path):
+        l = self.documents.get(path.upper())
+        if l:
+            return l
+        with open(path, "rb") as rf:
+            content = rf.read()
+            content = content.decode("utf8")
+            l = lines(content)
+            # self.documents[uri] = l
+            self.documents[path.upper()] = l
+            return l
+
     def open(self, uri): 
         path = uri_to_path(uri)
         with open(path, "rb") as rf:
             content = rf.read()
+            content = content.decode("utf8")
+            l = lines(content)
             # TODO
-            self.documents[uri] = content.decode("utf8")
-            print(self.documents[uri], 999)
+            self.documents[uri] = l
+            self.documents[path.upper()] = l
 
     def close(self, uri): 
         path = uri_to_path(uri)
@@ -43,38 +59,33 @@ class Documents(object):
 
     def change(self, uri, content):
         path = uri_to_path(uri)
-        self.documents[uri] = content
-        print(content, type(content))
+        l = lines(content)
+        self.documents[uri] = l
+        self.documents[path.upper()] = l
 
     def _solveTextDocumentPostionParams(self, params):
         uri = params["textDocument"]["uri"]
-        line = params["position"]["line"]
+        linenum = params["position"]["line"]
         character = params["position"]["character"]
-        content = self.documents[uri]
+        lines = self.documents[uri]
         l = c = 0
 
         import string
         default_name_chars = string.ascii_letters + string.digits + "_"
 
         word = ""
-        for char in content:
-            # print(repr(char), word, c, l)
+        for i, line in enumerate(lines):
+            if i == linenum:
+                for char in line:
+                    print char, word, 888
+                    if char in default_name_chars:
+                        word += char
+                    else:
+                        if c >= character:
+                            return word
+                        word = ""
 
-            if l == line:
-                if char in default_name_chars:
-                    word += char
-                else:
-                    if c >= character:
-                        return word
-                    word = ""
-
-            c += 1
-
-            if char == "\n":
-                c = 0
-                l += 1
-                word = ""
-
+                    c += 1
         return word
 
 class LanguageServerProtocolHandler(object):
@@ -230,7 +241,7 @@ class LanguageServerProtocolHandler(object):
             return 
 
         l = []
-        maxn = 10000000
+        maxn = 100
         root = p.root.get_name(symbol, False)
         for v in root.all_children():
             name = v.node_name()
@@ -238,29 +249,6 @@ class LanguageServerProtocolHandler(object):
             if len(l) >= maxn:
                 break
         return l
-
-        return [
-            {"label":"a"},
-            {"label":"ab"},
-            {"label":"abc"},
-            {"label":"abcd"},
-            {"label":"abcde"},
-        ]
-
-        p = self.project
-        if not p:
-            return 
-        p.init_or_load()
-        l = []
-        result = {"isIncomplete": True, "items":l}
-        maxn = 10
-        root = p.root.get_name(symbol)
-        for v in root.all_children():
-            name = v.node_name()[::-1]
-            l.append({"label":name})
-            if len(l) >= maxn:
-                break
-        return result
 
     def textDocument_hover(self, params):
         log.info("%s textDocument_hover %s", self, params)
@@ -290,7 +278,30 @@ class LanguageServerProtocolHandler(object):
         pass
 
     def textDocument_definition(self, params):
-        pass
+        log.info("%s textDocument_definition %s", self, params)
+        symbol = self._solveTextDocumentPostionParams(params)
+        log.info("%s textDocument_definition %s", self, symbol)
+        if not symbol:
+            return []
+
+        v = self.project.definition.get_name(symbol)
+
+        result = []
+        for a, b in v.tvalues:
+            path = self.project.file_pathes[a]
+
+            lines = self.documents.get(path)
+            for i, line in enumerate(lines):
+                if b == i:
+                    index = line.find(symbol)
+                    result.append({
+                        "uri":path_to_uri(path), 
+                        "range": {
+                            "start": {"line": b, "character": index},
+                            "end": {"line": b, "character": index + len(symbol)},
+                        },
+                    })
+        return result
 
     def textDocument_typeDefinition(self, params):
         pass
@@ -305,6 +316,23 @@ class LanguageServerProtocolHandler(object):
         if not symbol:
             return []
 
+        result = []
+        for v in [self.project.root.get_name(symbol)]:
+            for a, b in v.tvalues:
+                path = self.project.file_pathes[a]
+                lines = self.documents.get(path)
+                for i, line in enumerate(lines):
+                    if b == i:
+                        index = line.find(symbol)
+                        result.append({
+                            "uri":path_to_uri(path), 
+                            "range": {
+                                "start": {"line": b, "character": index},
+                                "end": {"line": b, "character": index + len(symbol)},
+                            },
+                        })
+        return result
+
         locations = []
         for uri, c in self.documents.documents.items():
             locations.append({"uri": uri, "range": {"start": {"line":0, "character": 0}, "end": {"line":0, "character": 3}}})
@@ -313,18 +341,6 @@ class LanguageServerProtocolHandler(object):
         return locations
 
         # TODO
-        result = []
-        for v in [p.root.get_name(symbol)]:
-            for a, b in v.tvalues:
-                path = p.file_pathes[a]
-                result.append({
-                    "uri":path_to_uri(path), 
-                    "range": {
-                        "start": {"line": b, "character": 0},
-                        "end": {"line": b, "character": 10},
-                    },
-                })
-        return result
 
     def textDocument_documentHighlight(self, params):
         pass
@@ -392,7 +408,7 @@ class LanguageServerProtocolHandler(object):
             'definitionProvider': True,
             # 'executeCommandProvider': {
             # },
-            'hoverProvider': True,
+            'hoverProvider': False,
             'referencesProvider': True,
             # 'renameProvider': True,
             # 'signatureHelpProvider': {
