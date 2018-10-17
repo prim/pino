@@ -3,6 +3,8 @@
 from twisted.internet import reactor
 from twisted.internet import protocol
 
+from pprint import pprint
+
 import sys
 import os
 import json
@@ -16,9 +18,6 @@ class ProxyClient(protocol.Protocol):
         self.recv_buffer = ""
         self.send_buffer = ""
         self.cli()
-
-    # def connectionLost(self, reason):
-    #     reactor.stop() 
 
     def dataReceived(self, data):
         self.recv_buffer += data
@@ -58,7 +57,6 @@ class ProxyClient(protocol.Protocol):
             else:
                 break
 
-
     def request(self, params):
         binary = json.dumps(params).encode("utf8")
         length = len(binary)
@@ -74,10 +72,13 @@ class ProxyClient(protocol.Protocol):
         if json_rpc_version != self.JSON_RPC_VERSION:
             log.error("wrong rpc version client version %s server version %s", json_rpc_version, LanguageServerProtocol.JSON_RPC_VERSION)
             return 
-        print message.get("result", "")
-        # sys.exit(0)
+        result = message.get("result", "")
+        try:
+            result = json.loads(result)
+        except:
+            pass
+        pprint(result)
         reactor.stop()
-        # reactor.callFromThread(reactor.stop)
 
     def cli(self):
         project = sys.argv[2]

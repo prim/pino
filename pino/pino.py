@@ -92,7 +92,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
         return "\n".join(ret)
 
     def search_word(self, params):
-        log.debug("%s search_words %s", self, params)
+        log.debug("%s search_word %s", self, params)
         self._(params)
         ret = []
         keyword = params["args"][0]
@@ -181,6 +181,11 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
         log.debug("%s stat %s", self, params)
         self._(params)
         return self.project.stat()
+
+    def load(self, params):
+        log.debug("%s load %s", self, params)
+        self._(params)
+        self.project.load()
 
     def save(self, params):
         log.debug("%s save %s", self, params)

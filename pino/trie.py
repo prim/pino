@@ -15,6 +15,15 @@ class Trie(object):
         self.tvalues = None
         self.name = name
 
+    def __getstate__(self):
+        return {"parent": self.parent, "tvalues": self.tvalues, "name": self.name, "list": self.list}
+
+    def __setstate__(self, state):
+        self.parent = state["parent"]
+        self.tvalues = state["tvalues"]
+        self.name = state["name"]
+        self.list = state["list"]
+
     def node_name(self):
         s = self.name
         t = self.parent
