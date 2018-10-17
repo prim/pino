@@ -5,6 +5,7 @@ from core import Project
 import log
 import core
 import os.path
+import fnmatch
 
 class PinoProtocolHandler(object):
 
@@ -79,6 +80,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
             return 
 
         maxn = int(params["args"][1])
+        maxn = 256
         root = project.root.get_name(keyword, False)
         log.debug("%s completion %s %s %s", self, params, keyword, root)
         if root:

@@ -9,4 +9,3 @@ function
 
 keywords = _()
 name_chars = string.ascii_letters + string.digits + "_#"
-name_chars = string.ascii_letters + string.digits

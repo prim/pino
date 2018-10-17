@@ -109,3 +109,4 @@ venv.bak/
 /server.bat
 /test.bat
 /pino/config.py.example
+/pino/config.py.example
