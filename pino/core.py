@@ -278,6 +278,7 @@ class Project(object):
                 f(s, lv + 1)
 
         f(self.root, 0)
+        print "all", self.root.n
 
         for k, v in sorted(st.items()):
             print k, v
