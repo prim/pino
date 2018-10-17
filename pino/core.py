@@ -3,23 +3,19 @@
 import os
 import time
 import string
-import traceback
 import languages
 
 import log
 
 from config import project_info
-from utils import uri_to_path, path_to_uri
-from document import Document
 
 from os.path import splitext
 
 import trie
-from trie import Trie
+from radix_tree import RadixTree
 
 # import cPickle as pickle
 import pickle
-import fnmatch
 
 # default_name_chars = string.letters + string.digits + "_"
 default_name_chars = string.ascii_letters + string.digits + "_"
@@ -59,9 +55,10 @@ class Project(object):
         self.file_contents = {}
 
         self.root_levels = {}
+        self.root = RadixTree(None, "", ())
+
         self.definition_levels = {}
-        self.root = Trie(self.root_levels)
-        self.definition = Trie(self.definition_levels)
+        self.definition = RadixTree(None, "", ())
 
         self.long_words = {}
         self.long_word_definition = {}
@@ -73,6 +70,16 @@ class Project(object):
 
     def __repr__(self):
         return self.name
+
+    def generate_levels(self):
+        def f(st, t, lv):
+            if not t.list:
+                return 
+            st.setdefault(lv, set()).add(t)
+            for s in t.list:
+                f(st, s, lv + 1)
+        f(self.root_levels, self.root, 0)
+        f(self.definition_levels, self.definition, 0)
 
     def is_long_word(self, word):
         return len(word) >= 38
@@ -121,7 +128,6 @@ class Project(object):
             self.load()
         else:
             self.init()
-            # TODO no need this later
             self.save()
         end = time.time()
         log.info("%s init_or_load %0.8f" , self, end - begin)
@@ -135,6 +141,8 @@ class Project(object):
         def f(base):
             from os.path import join, isfile, isdir
             for name in os.listdir(base):
+                if name[0] == ".":
+                    continue
                 path = join(base, name)
                 path = path.replace("/", "\\")
                 if isdir(path) and path not in self.skip_directories and os.path.basename(path) not in self.skip_directories:
@@ -151,12 +159,17 @@ class Project(object):
         for path in self.sources:
             f(path)
 
+        self.generate_levels()
+
     def load(self):
-        log.info("%s load %s" , self, self.data_file_path)
+        begin = time.time() 
         with open(self.data_file_path, "rb") as f:
             binary = f.read()
             data = pickle.loads(binary)
             self.__dict__.update(data)
+        self.generate_levels()
+        end = time.time()
+        log.info("%s save %0.8f" , self, end - begin)
 
     def save(self):
         begin = time.time() 
@@ -256,12 +269,24 @@ class Project(object):
         for k, v in sorted(self.word_length_stat.items()):
             print(k, v)
 
-        print("trie", trie.Trie.trie_n)
+        st = {}
+        def f(t, lv):
+            if not t.list:
+                return 
+            st[lv] = st.get(lv, 0) + 1
+            for s in t.list:
+                f(s, lv + 1)
 
-        s = 0
-        n = 0
-        from sys import getsizeof
-        print(s, n, "bytes", self.bytes)
+        f(self.root, 0)
+
+        for k, v in sorted(st.items()):
+            print k, v
+
+        # print("trie", trie.Trie.trie_n)
+        # s = 0
+        # n = 0
+        # from sys import getsizeof
+        # print(s, n, "bytes", self.bytes)
 
 def init_project():
     for name, info in project_info.items():

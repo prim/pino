@@ -18,6 +18,7 @@ python pino cli py27stdlib completion SOCK 10
 python pino cli py27stdlib search_word HTTP 1
 python pino cli py27stdlib search_word HTTP 2
 python pino cli py27stdlib search_word PinoProtocolHandler 0
+
     """
 
     def __init__(self):
@@ -81,7 +82,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
 
         maxn = int(params["args"][1])
         maxn = 256
-        root = project.root.get_name(keyword, False)
+        root = project.root.prefix(keyword)
         log.debug("%s completion %s %s %s", self, params, keyword, root)
         if root:
             for v in root.all_children():
@@ -116,11 +117,11 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
                     linenum += 1
 
         # TODO: part match definition
-        # goto definition 0
-        # full match 1
         if mode == 1 or mode == 0:
+            # full match 1
             if mode == 1:
                 v = project.root.get_name(keyword)
+            # goto definition 0
             else:
                 v = project.definition.get_name(keyword)
             if v:
@@ -133,7 +134,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
         # part match 2
         else:
             maxn = 0xffff
-            for v in project.root.match_name(keyword, maxn, project.root_levels):
+            for v in project.root.match(keyword, maxn, project.root_levels):
                 todo = {}
                 for file_id, line in v.tvalues:
                     todo.setdefault(file_id, set()).add(line)
