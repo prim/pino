@@ -1,3 +1,4 @@
+# encoding: utf8
 
 from jsonrpc import JsonRpcProtocol
 from core import Project
@@ -81,15 +82,27 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
             return 
 
         maxn = int(params["args"][1])
-        maxn = 256
+        maxn = 1000000
         root = project.root.prefix(keyword)
         log.debug("%s completion %s %s %s", self, params, keyword, root)
         if root:
             for v in root.all_children():
                 name = v.node_name()
+
+                # 删除无效的名字
+                for file_id, line in v.tvalues:
+                    try:
+                        project.file_contents[file_id]
+                        break
+                    except KeyError:
+                        pass
+                else:
+                    continue
+
                 ret.append(name)
                 if len(ret) >= maxn:
                     break
+
         return "\n".join(ret)
 
     def search_word(self, params):
@@ -103,7 +116,11 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
 
         # https://groups.google.com/forum/#!topic/vim_use/qC-S-P5Yr-A
         def f(file_id, lines):
-            source = project.file_contents[file_id]
+            # 可能file_id已经因为file modify|move|delete 失效了
+            try:
+                source = project.file_contents[file_id]
+            except KeyError:
+                return 
             file_path = project.file_pathes[file_id]
             linenum = 0
             begin = 0

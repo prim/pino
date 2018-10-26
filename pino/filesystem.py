@@ -11,19 +11,19 @@ import Queue
 class FileEventHandler(FileSystemEventHandler):
 
     def on_moved(self, event):
-        e = ["moved", event.src_path, event.dest_path]
+        e = ["on_file_moved", event.src_path, event.dest_path]
         self.queue(e)
 
     def on_created(self, event):
-        e = ["created", event.src_path]
+        e = ["on_file_created", event.src_path]
         self.queue(e)
 
     def on_deleted(self, event):
-        e = ["deleted", event.src_path]
+        e = ["on_file_deleted", event.src_path]
         self.queue(e)
 
     def on_modified(self, event):
-        e = ["modify", event.src_path]
+        e = ["on_file_modified", event.src_path]
         self.queue(e)
 
     def queue(self, event):
@@ -53,8 +53,11 @@ def watcher():
         while True:
             event = Q.get_nowait()
             path = event[1]
+            action = event[0]
             project = core.Project.find(path)
-            project.reinit()
+            func = getattr(project, action, None)
+            if func:
+                func(*event[1:])
     except Queue.Empty:
         return 
 

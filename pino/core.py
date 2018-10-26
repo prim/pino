@@ -51,9 +51,9 @@ class Project(object):
     def _(self):
         self.file_id = 0
         self.file_pathes = {}
+        self.file_contents = {}
 
         self.bytes = 0
-        self.file_contents = {}
 
         self.root_levels = {}
         self.root = RadixTree(None, "", ())
@@ -130,9 +130,6 @@ class Project(object):
     def init(self):
         log.info("%s init" , self)
 
-        white_list = self.file_white_list
-        black_list = self.file_black_list
-
         def f(base):
             from os.path import join, isfile, isdir
             for name in os.listdir(base):
@@ -140,16 +137,14 @@ class Project(object):
                     continue
                 path = join(base, name)
                 path = path.replace("/", "\\")
-                if isdir(path) and path not in self.skip_directories and os.path.basename(path) not in self.skip_directories:
+                if isdir(path):
+                    #                                   .svn .git
+                    if path in self.skip_directories or os.path.basename(path) in self.skip_directories:
+                        continue
                     f(path)
-                if isfile(path):
-                    _, file_extension = splitext(name)
-                    if black_list and file_extension in black_list:
-                        log.debug("%s init black %s %s", self, name, black_list)
-                    elif not white_list or file_extension in white_list:
-                        self.parse_file(file_extension, path)
-                    else:
-                        log.debug("%s init skip %s", self, name)
+
+                elif isfile(path):
+                    self.on_file_created(path)
 
         for path in self.sources:
             filesystem.watch(path)
@@ -191,15 +186,74 @@ class Project(object):
                 continue
         return ""
 
-    def parse_file(self, type_, path):
-        log.debug("%s parse_file %s", self, path)
-        try:
-            file_id = self.file_pathes[path]
-        except KeyError:
-            self.file_id += 1
-            file_id = self.file_id
-            self.file_pathes[file_id] = path
-            self.file_pathes[path] = file_id
+    def validate_file(self, path):
+        _, file_extension = splitext(path)
+
+        white_list = self.file_white_list
+        black_list = self.file_black_list
+
+        if black_list and file_extension in black_list:
+            log.debug("%s validate_file black %s %s", self, path, black_list)
+        elif not white_list or file_extension in white_list:
+            return file_extension
+
+        else:
+            log.debug("%s validate_file skip %s", self, path)
+
+    def on_file_created(self, path):
+        log.info("%s on_file_created %s", self, path)
+        file_extension = self.validate_file(path)
+        if not file_extension:
+            return 
+        if not os.path.isfile(path):
+            return 
+
+        old_file_id = self.file_pathes.pop(path, None)
+        if old_file_id:
+            self.file_pathes.pop(path, None)
+            self.file_contents.pop(old_file_id, None)
+
+        self.file_id += 1
+        file_id = self.file_id
+        self.file_pathes[file_id] = path
+        self.file_pathes[path] = file_id
+        self.parse_file(path, file_extension, file_id)
+
+    def on_file_deleted(self, path):
+        log.info("%s on_file_deleted %s", self, path)
+        file_extension = self.validate_file(path)
+        if not file_extension:
+            return 
+
+        old_file_id = self.file_pathes.pop(path, None)
+        if old_file_id:
+            self.file_pathes.pop(path, None)
+            self.file_contents.pop(old_file_id, None)
+
+    def on_file_modifed(self, path):
+        log.info("%s on_file_modify %s", self, path)
+        file_extension = self.validate_file(path)
+        if not file_extension:
+            return 
+
+        old_file_id = self.file_pathes.pop(path, None)
+        if old_file_id:
+            self.file_pathes.pop(path, None)
+            self.file_contents.pop(old_file_id, None)
+
+        self.file_id += 1
+        file_id = self.file_id
+        self.file_pathes[file_id] = path
+        self.file_pathes[path] = file_id
+        self.parse_file(path, file_extension, file_id)
+
+    def on_file_moved(self, fpath, tpath):
+        log.info("%s on_file_moved %s %s", self, fpath, tpath)
+        self.on_file_deleted(fpath)
+        self.on_file_created(tpath)
+
+    def parse_file(self, path, type_, file_id):
+        log.debug("%s parse_file %s %s %s", self, path, type_, file_id)
 
         name_chars = languages.name_chars.get(type_, default_name_chars)
         language_keywords = languages.keywords.get(type_, [])
