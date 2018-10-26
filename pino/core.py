@@ -4,6 +4,7 @@ import os
 import time
 import string
 import languages
+import filesystem
 
 import log
 
@@ -13,10 +14,11 @@ from os.path import splitext
 
 from radix_tree import RadixTree
 
-# import cPickle as pickle
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
-# default_name_chars = string.letters + string.digits + "_"
 default_name_chars = string.ascii_letters + string.digits + "_"
 default_skip_directories = [".svn", ".git", ]
 default_file_black_list = [
@@ -40,7 +42,7 @@ class Project(object):
         self.encodings = ["utf8", "gbk", "ascii"]
         self._()
 
-        log.info("new project %s %s", name, self.__dict__)
+        log.info("new project %s %s", name, self.sources)
 
         self.inited = False
         if init:
@@ -59,9 +61,6 @@ class Project(object):
         self.definition_levels = {}
         self.definition = RadixTree(None, "", ())
 
-        self.long_words = {}
-        self.long_word_definition = {}
-
         self.word_length_stat = {}
 
     def __str__(self):
@@ -79,9 +78,6 @@ class Project(object):
                 f(st, s, lv + 1)
         f(self.root_levels, self.root, 0)
         f(self.definition_levels, self.definition, 0)
-
-    def is_long_word(self, word):
-        return len(word) >= 38
 
     @classmethod
     def new(klass, name, root):
@@ -156,6 +152,7 @@ class Project(object):
                         log.debug("%s init skip %s", self, name)
 
         for path in self.sources:
+            filesystem.watch(path)
             f(path)
 
         self.generate_levels()
@@ -178,7 +175,6 @@ class Project(object):
                 "bytes", "file_contents",
                 "root", "definition", 
                 "root_levels", "definition_levels",
-                "long_words", "long_word_definition",
                 "word_length_stat",
                 ):
             data[name] = getattr(self, name)
@@ -217,8 +213,6 @@ class Project(object):
         root_levels = self.root_levels
         definition_levels = self.definition_levels
 
-        is_long_word = self.is_long_word
-
         with open(path, 'rb') as rf:
             binary = rf.read()
             self.bytes += len(binary)
@@ -245,16 +239,11 @@ class Project(object):
                         for i, t in enumerate(words):
                             if t in language_keywords:
                                 continue
-                            if is_long_word(t):
-                                if words[0] in ("def", "class") and i == 1:
-                                    self.long_word_definition.setdefault(t, {}).setdefault(file_id, set()).add(line)
-                                self.long_words.setdefault(t, {}).setdefault(file_id, set()).add(line)
-                            else:
-                                if words[0] in ("def", "class") and i == 1:
-                                    add_definition(t, (file_id, line), definition_levels)
-                                if add_word(t, (file_id, line), root_levels):
-                                    length = len(t)
-                                    word_length_stat[length] = word_length_stat.get(length, 0) + 1
+                            if words[0] in ("def", "class") and i == 1:
+                                add_definition(t, (file_id, line), definition_levels)
+                            if add_word(t, (file_id, line), root_levels):
+                                length = len(t)
+                                word_length_stat[length] = word_length_stat.get(length, 0) + 1
 
                         line += 1
                         words = []
