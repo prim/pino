@@ -6,8 +6,12 @@ from core import init_project
 from pino import PinoProtocol
 from lsp import LanguageServerProtocol
 
+import filesystem
+
 def main():
     init_project()
+
+    filesystem.start_watch() 
 
     lsp_port = 9999
     lsp_factory = protocol.ServerFactory()
