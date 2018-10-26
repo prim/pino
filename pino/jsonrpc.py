@@ -15,7 +15,6 @@ class JsonRpcProtocol(protocol.Protocol):
         log.info("ProxyServer.connectionMade %s", self)
         self.buffer = bytes()
         self.handler = self.Handler()
-        print(self.handler, self.Handler, 999)
 
     def connectionLost(self, reason):
         log.info("ProxyServer.connectionLost %s %s", self, reason)

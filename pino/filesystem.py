@@ -4,8 +4,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from twisted.internet import reactor
 
-import threading
-
+import os.path
 import Queue
 
 class FileEventHandler(FileSystemEventHandler):
@@ -33,17 +32,20 @@ class FileEventHandler(FileSystemEventHandler):
 observer, event_handler = None, None
 # 不限制队列大小
 Q = Queue.Queue()
+pathes = set()
 
 def start_watch():
     global observer, event_handler
     observer = Observer()
-    event_handler = FileEventHandler()
     observer.start()
+    event_handler = FileEventHandler()
     reactor.callLater(1, watcher)
 
 def watch(path):
-    print "watch", path
+    if not os.path.isdir(path):
+        return 
     global observer, event_handler
+    pathes.add(path)
     observer.schedule(event_handler, path, True)
 
 def watcher():

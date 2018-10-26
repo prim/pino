@@ -48,6 +48,9 @@ class Project(object):
         if init:
             self.init_or_load()
 
+        for path in self.sources:
+            filesystem.watch(path)
+
     def _(self):
         self.file_id = 0
         self.file_pathes = {}
@@ -204,6 +207,8 @@ class Project(object):
 
     def on_file_created(self, path):
         log.info("%s on_file_created %s", self, path)
+        if not self.inited:
+            return 
         file_extension = self.validate_file(path)
         if not file_extension:
             return 
@@ -223,10 +228,11 @@ class Project(object):
 
     def on_file_deleted(self, path):
         log.info("%s on_file_deleted %s", self, path)
+        if not self.inited:
+            return 
         file_extension = self.validate_file(path)
         if not file_extension:
             return 
-
         old_file_id = self.file_pathes.pop(path, None)
         if old_file_id:
             self.file_pathes.pop(path, None)
@@ -234,10 +240,11 @@ class Project(object):
 
     def on_file_modifed(self, path):
         log.info("%s on_file_modify %s", self, path)
+        if not self.inited:
+            return 
         file_extension = self.validate_file(path)
         if not file_extension:
             return 
-
         old_file_id = self.file_pathes.pop(path, None)
         if old_file_id:
             self.file_pathes.pop(path, None)
@@ -251,6 +258,8 @@ class Project(object):
 
     def on_file_moved(self, fpath, tpath):
         log.info("%s on_file_moved %s %s", self, fpath, tpath)
+        if not self.inited:
+            return 
         self.on_file_deleted(fpath)
         self.on_file_created(tpath)
 

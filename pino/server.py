@@ -9,9 +9,9 @@ from lsp import LanguageServerProtocol
 import filesystem
 
 def main():
-    init_project()
-
     filesystem.start_watch() 
+
+    init_project()
 
     lsp_port = 9999
     lsp_factory = protocol.ServerFactory()
