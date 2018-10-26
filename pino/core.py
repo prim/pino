@@ -188,6 +188,8 @@ class Project(object):
 
     def validate_file(self, path):
         _, file_extension = splitext(path)
+        if not file_extension:
+            file_extension = os.path.basename(path)
 
         white_list = self.file_white_list
         black_list = self.file_black_list
