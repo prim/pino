@@ -1,22 +1,5 @@
 
 
-root = Trie()
-root.add_name("abchina", 1)
-root.add_name("abxx", 1)
-root.add_name("abxxx", 1)
-root.add_name("abzxy", 1)
-root.add_name("abziyx", 1)
-print(root)
-print(root.get_name("abchina").tvalues)
-print(root.levels)
-for v in root.match_name("bx"):
-    print("---", v.name)
-
-print("888")
-for v in root.match_name("z"):
-    print("---", v.name)
-1/0
-
     def parse_file(self, type_, path):
         # if path != r"E:\netease\g58\server\hmt20180716\MobileServer\mobilerpc\TcpClient.py":
         #     return 
@@ -175,14 +158,4 @@ for v in root.match_name("z"):
         file.write('[Search results for pattern: "%s"]\n' % pattern)
         file.write("".join(ret))
         file.close()
-
-    import trie
-    lvs = {}
-    a = trie.Trie(lvs)
-    a.add_name("SOCK_A", 1, lvs)
-    a.add_name("SOCK_B", 1, lvs)
-    a.add_name("SOCK_C", 1, lvs)
-    print(a.get_name("SOCK", False).node_name())
-    print(a.get_name("SOCK_", False).node_name())
-
 

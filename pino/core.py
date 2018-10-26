@@ -11,7 +11,6 @@ from config import project_info
 
 from os.path import splitext
 
-import trie
 from radix_tree import RadixTree
 
 # import cPickle as pickle
@@ -282,12 +281,6 @@ class Project(object):
 
         for k, v in sorted(st.items()):
             print k, v
-
-        # print("trie", trie.Trie.trie_n)
-        # s = 0
-        # n = 0
-        # from sys import getsizeof
-        # print(s, n, "bytes", self.bytes)
 
 def init_project():
     for name, info in project_info.items():
