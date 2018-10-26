@@ -192,8 +192,6 @@ class Project(object):
         return ""
 
     def parse_file(self, type_, path):
-        # if path != r"E:\netease\g58\server\hmt20180716\MobileServer\mobilerpc\TcpClient.py":
-        #     return 
         log.debug("%s parse_file %s", self, path)
         try:
             file_id = self.file_pathes[path]
