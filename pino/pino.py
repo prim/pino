@@ -138,15 +138,24 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
             # full match 1
             if mode == 1:
                 v = project.root.get_name(keyword)
+                if v:
+                    todo = {}
+                    for file_id, line in v.tvalues:
+                        todo.setdefault(file_id, set()).add(line)
+                    for file_id, lines in todo.items():
+                        f(file_id, lines)
             # goto definition 0
             else:
-                v = project.definition.get_name(keyword)
-            if v:
-                todo = {}
-                for file_id, line in v.tvalues:
-                    todo.setdefault(file_id, set()).add(line)
-                for file_id, lines in todo.items():
-                    f(file_id, lines)
+                # v = project.definition.get_name(keyword)
+                maxn = 0xffff
+                print 1, keyword, mode, maxn
+                for v in project.definition.match(keyword, maxn, project.definition_levels):
+                    print 2, v
+                    todo = {}
+                    for file_id, line in v.tvalues:
+                        todo.setdefault(file_id, set()).add(line)
+                    for file_id, lines in todo.items():
+                        f(file_id, lines)
 
         # part match 2
         else:
@@ -198,6 +207,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
     def stat(self, params):
         log.debug("%s stat %s", self, params)
         self._(params)
+        # self.project.generate_levels()
         return self.project.stat()
 
     def load(self, params):

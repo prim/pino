@@ -11,6 +11,7 @@ import log
 from config import project_info
 
 from os.path import splitext
+from twisted.internet import utils
 
 from radix_tree import RadixTree
 
@@ -26,6 +27,8 @@ default_file_black_list = [
     ".pyc",
     ".log",
 ]
+
+ctags_path = os.path.realpath(os.path.join("bin", "ctags.exe"))
 
 class Project(object):
 
@@ -73,6 +76,9 @@ class Project(object):
         return self.name
 
     def generate_levels(self):
+        self.root_levels = {}
+        self.definition_levels = {}
+
         def f(st, t, lv):
             if not t.list:
                 return 
@@ -302,14 +308,42 @@ class Project(object):
                         for i, t in enumerate(words):
                             if t in language_keywords:
                                 continue
-                            if words[0] in ("def", "class") and i == 1:
-                                add_definition(t, (file_id, line), definition_levels)
+                            if type_ == ".py":
+                                if words[0] in ("def", "class") and i == 1:
+                                    add_definition(t, (file_id, line), definition_levels)
                             if add_word(t, (file_id, line), root_levels):
                                 length = len(t)
                                 word_length_stat[length] = word_length_stat.get(length, 0) + 1
 
                         line += 1
                         words = []
+
+        if type_ != ".py":
+            self.parse_definition(path, file_id)
+
+    def parse_definition(self, path, file_id):
+        log.debug("%s parse_definition %s", self, path)
+
+        add_definition= self.definition.add_name
+        definition_levels = self.definition_levels
+
+        def parse_definition_result(result):
+            for line in result.split('\n'):
+                # line = line.rstrip()
+                ps = line.split()
+                if len(ps) >= 2 and ps[2].isdigit():
+                    t = ps[0]
+                    line = int(ps[2]) - 1
+                    add_definition(t, (file_id, line), definition_levels)
+                    print "add_def", t, file_id, line
+
+        def parse_definition_error(error):
+            log.info("%s parse_definition_error %s", self, error)
+
+        # d = utils.getProcessOutput(r"C:\Python27\python.exe", ["1.py"])
+        d = utils.getProcessOutput(ctags_path, ["-xu", path])
+        d.addCallback(parse_definition_result)
+        d.addErrback(parse_definition_error)
 
     def reinit(self):
         self._()
