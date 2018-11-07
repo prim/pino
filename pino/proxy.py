@@ -7,7 +7,8 @@ from twisted.internet import protocol
 import sys
 import os
 
-log_ = open(r"E:\github\pino\proxy.log", "a+")
+path = os.path.join(os.path.dirname(__file__), "proxy.log")
+log_ = open(path, "a+")
 
 def log_info(fmt, *args):
     if args:
