@@ -55,6 +55,8 @@ class Project(object):
             filesystem.watch(path)
 
     def _(self):
+        self.defer_counter = 0
+
         self.file_id = 0
         self.file_pathes = {}
         self.file_contents = {}
@@ -76,6 +78,7 @@ class Project(object):
         return self.name
 
     def generate_levels(self):
+        log.info("%s generate_levels", self)
         self.root_levels = {}
         self.definition_levels = {}
 
@@ -336,11 +339,18 @@ class Project(object):
                     line = int(ps[2]) - 1
                     add_definition(t, (file_id, line), definition_levels)
                     print "add_def", t, file_id, line
+            self.defer_counter -= 1
+            if self.defer_counter == 0:
+                self.generate_levels()
 
         def parse_definition_error(error):
             log.info("%s parse_definition_error %s", self, error)
+            self.defer_counter -= 1
+            if self.defer_counter == 0:
+                self.generate_levels()
 
         # d = utils.getProcessOutput(r"C:\Python27\python.exe", ["1.py"])
+        self.defer_counter += 1
         d = utils.getProcessOutput(ctags_path, ["-xu", path])
         d.addCallback(parse_definition_result)
         d.addErrback(parse_definition_error)

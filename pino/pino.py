@@ -207,7 +207,6 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
     def stat(self, params):
         log.debug("%s stat %s", self, params)
         self._(params)
-        # self.project.generate_levels()
         return self.project.stat()
 
     def load(self, params):
