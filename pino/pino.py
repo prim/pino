@@ -167,7 +167,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
                 for file_id, lines in todo.items():
                     f(file_id, lines)
 
-        # ret.insert(0, '[Search results for pattern: "%s"]' % keyword)
+        ret.sort(key = lambda item: (item["filename"], item["lnum"]))
         return ret
         # return "\n".join(ret)
 

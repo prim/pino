@@ -172,7 +172,7 @@ class Project(object):
             self.__dict__.update(data)
         self.generate_levels()
         end = time.time()
-        log.info("%s save %0.8f" , self, end - begin)
+        log.info("%s load %0.8f" , self, end - begin)
 
     def save(self):
         begin = time.time() 
