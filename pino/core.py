@@ -142,6 +142,10 @@ class Project(object):
     def init(self):
         log.info("%s init" , self)
 
+        # TODO
+        # import multiprocessing
+        # cpu_count = multiprocessing.cpu_count()
+
         def f(base):
             from os.path import join, isfile, isdir
             for name in os.listdir(base):
@@ -279,7 +283,7 @@ class Project(object):
         language_keywords = languages.keywords.get(type_, [])
         word_length_stat = self.word_length_stat
 
-        add_definition= self.definition.add_name
+        add_definition = self.definition.add_name
         add_word = self.root.add_name
 
         root_levels = self.root_levels
@@ -338,7 +342,6 @@ class Project(object):
                     t = ps[0]
                     line = int(ps[2]) - 1
                     add_definition(t, (file_id, line), definition_levels)
-                    print "add_def", t, file_id, line
             self.defer_counter -= 1
             if self.defer_counter == 0:
                 self.generate_levels()
