@@ -1,12 +1,11 @@
 
-from twisted.internet import protocol
 from pprint import pprint
 
 import log
 import json
 import traceback
 
-class JsonRpcProtocol(protocol.Protocol):
+class JsonRpc(object):
 
     Handler = None
     JSON_RPC_VERSION = "2.0"
@@ -14,7 +13,8 @@ class JsonRpcProtocol(protocol.Protocol):
     def connectionMade(self):
         log.info("ProxyServer.connectionMade %s", self)
         self.buffer = bytes()
-        self.handler = self.Handler()
+        self.handler = h = self.Handler()
+        h.protocol = self
 
     def connectionLost(self, reason):
         log.info("ProxyServer.connectionLost %s %s", self, reason)
@@ -53,8 +53,8 @@ class JsonRpcProtocol(protocol.Protocol):
 
                 response = self.handleJsonRpcRequest(binary[b:e])
                 # log.info("resp %s", str(response)[:1080])
-                log.info("resp %s", str(response))
                 if response: 
+                    log.info("resp %s", str(response))
                     biny = json.dumps(response).encode("utf8")
                     self.transport.write(
                             b"Content-Length: %d\r\nContent-Type: application/vscode-jsonrpc; charset=utf8\r\n\r\n%s" % (
@@ -72,17 +72,17 @@ class JsonRpcProtocol(protocol.Protocol):
 
         json_rpc_version = message.get("jsonrpc", -1)
         if json_rpc_version != self.JSON_RPC_VERSION:
-            log.error("wrong rpc version client version %s server version %s", json_rpc_version, self.JSON_RPC_VERSION)
+            # log.error("wrong rpc version client version %s server version %s", json_rpc_version, self.JSON_RPC_VERSION)
             return 
         method_name = message.get("method")
         if method_name is None:
-            log.error("no method_name %s", message)
+            # log.error("no method_name %s", message)
             return 
+
         # textDocument/didOpen
         method_name = method_name.replace("/", "_")
         # $/cancelRequest
         method_name = method_name.replace("$", "")
-        print(self.handler)
         func = getattr(self.handler, method_name, pprint)
 
         message_id = message.get("id")
@@ -93,8 +93,24 @@ class JsonRpcProtocol(protocol.Protocol):
         try:
             result = func(message.get("params", {}))
             return {"jsonrpc": self.JSON_RPC_VERSION, "id": message_id, "result":result}
-        except Exception as e:
+        except Exception:
             error = traceback.format_exc()
             log.error("handleJsonRpcRequest error %s", error)
             return {"jsonrpc": self.JSON_RPC_VERSION, "id": message_id, "error":error}
+
+    def dosomething(self, action, *args):
+        params = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": action,
+            "params": {
+                "cwf": None,
+                "cwd": None,
+                "args": args,
+            }
+        }
+        binary = json.dumps(params, ensure_ascii=False).encode('utf8')
+        length = len(binary)
+        binary = b"Content-Length: %d\r\nContent-Type: application/vscode-jsonrpc; charset=utf8\r\n\r\n%s" % ( length, binary)
+        self.transport.write(binary)
 

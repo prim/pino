@@ -1,7 +1,7 @@
 
 from twisted.internet import reactor, protocol
 
-from core import init_project
+from core import init_project, MasterProtocol
 
 from pino import PinoProtocol
 from lsp import LanguageServerProtocol
@@ -21,6 +21,11 @@ def main():
     pino_port = 10240
     pino_factory = protocol.ServerFactory()
     pino_factory.protocol = PinoProtocol
+    reactor.listenTCP(pino_port, pino_factory, backlog=1024)
+
+    pino_port = 10248
+    pino_factory = protocol.ServerFactory()
+    pino_factory.protocol = MasterProtocol
     reactor.listenTCP(pino_port, pino_factory, backlog=1024)
 
     reactor.run()

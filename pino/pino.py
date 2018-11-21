@@ -1,7 +1,8 @@
 # encoding: utf8
 
-from jsonrpc import JsonRpcProtocol
+from jsonrpc import JsonRpc
 from core import Project
+from twisted.internet import protocol
 
 import log
 import core
@@ -219,7 +220,7 @@ python pino cli py27stdlib search_word PinoProtocolHandler 0
         self._(params)
         self.project.save()
 
-class PinoProtocol(JsonRpcProtocol):
+class PinoProtocol(JsonRpc, protocol.Protocol):
 
-    Handler= PinoProtocolHandler
+    Handler = PinoProtocolHandler
 

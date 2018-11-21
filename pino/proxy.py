@@ -67,7 +67,7 @@ def main():
     log_info("main %s", sys.argv)
     global stdio
     f = ProxyClientFactory()
-    reactor.connectTCP("127.0.0.1", 9999, f)
+    reactor.connectTCP("127.0.0.1", 10241, f)
     stdio = Stdio()
     StandardIO(stdio)
     reactor.run()

@@ -11,9 +11,10 @@ import log
 from config import project_info
 
 from os.path import splitext
-from twisted.internet import utils
+from twisted.internet import utils, reactor, protocol
 
 from radix_tree import RadixTree
+from jsonrpc import JsonRpc
 
 try:
     import cPickle as pickle
@@ -29,6 +30,67 @@ default_file_black_list = [
 ]
 
 ctags_path = os.path.realpath(os.path.join("bin", "ctags.exe"))
+
+class ppp(object):
+
+    def done_parse(self, params):
+        print "done_parse", params
+        file_id = params["args"][0]
+        word_index = params["args"][1]
+        definition_index = params["args"][2]
+        self.protocol.project.done_parse(file_id, word_index, definition_index)
+
+    def getdatareply(self, params):
+        print "getdatareply", params
+
+class Master(object):
+    
+    pass
+
+class MasterProtocol(JsonRpc, protocol.ProcessProtocol):
+
+    Handler = Master
+
+class pp(JsonRpc, protocol.ProcessProtocol):
+
+    Handler = ppp
+
+    def __init__(self):
+        protocol.ProcessProtocol()
+        self.data = ""
+
+        self.buffer = bytes()
+        self.handler = self.Handler()
+
+    def connectionMade(self):
+        JsonRpc.connectionMade(self)
+
+    def outReceived(self, data):
+        log.info("outReceived! with %d bytes!" % len(data))
+        self.dataReceived(data)
+
+    def errReceived(self, data):
+        log.info("errReceived! with %d bytes!" % len(data))
+        self.dataReceived(data)
+
+    def inConnectionLost(self):
+        log.info("inConnectionLost! stdin is closed! (we probably did it)")
+
+    def outConnectionLost(self):
+        log.info("outConnectionLost! The child closed their stdout!")
+        # now is the time to examine what they wrote
+        #print("I saw them write:", self.data)
+        # (dummy, lines, words, chars, file) = re.split(r'\s+', self.data)
+        log.info(self.data)
+
+    def errConnectionLost(self):
+        log.info("errConnectionLost! The child closed their stderr.")
+
+    def processExited(self, reason):
+        log.info("processExited, status %d" % (reason.value.exitCode,))
+
+    def processEnded(self, reason):
+        log.info("processEnded, status %d" % (reason.value.exitCode,))
 
 class Project(object):
 
@@ -70,6 +132,9 @@ class Project(object):
         self.definition = RadixTree(None, "", ())
 
         self.word_length_stat = {}
+
+        self.rpc_counter = set()
+        self.inrpc = False
 
     def __str__(self):
         return self.name
@@ -141,11 +206,81 @@ class Project(object):
 
     def init(self):
         log.info("%s init" , self)
+        import multiprocessing
+        cpu_count = multiprocessing.cpu_count()
+        work_count = max(cpu_count - 1, 1)
+        if work_count == 1:
+            self.init_by_one_process()
+        else:
+            self.init_by_multi_process(work_count)
 
-        # TODO
-        # import multiprocessing
-        # cpu_count = multiprocessing.cpu_count()
+    def done_parse(self, file_id, word_index, definition_index):
+        try:
+            self.rpc_counter.remove(file_id)
+        except KeyError:
+            pass # TODO
 
+
+        print "project done_parse", file_id, self.rpc_counter, self.inrpc
+        add_definition = self.definition.add_name
+        add_word = self.root.add_name
+        root_levels = self.root_levels
+        definition_levels = self.definition_levels
+        for t, line in word_index:
+            add_word(t, (file_id, line), root_levels)
+        for t, line in definition_index:
+            add_definition(t, (file_id, line), definition_levels)
+
+        if not self.rpc_counter and not self.inrpc:
+            self.init_by_multi_process_end()
+
+    def init_by_multi_process_end(self):
+        print "init_by_multi_process_end"
+        self.generate_levels()
+
+    def init_by_multi_process(self, work_count):
+        # 启动N个进程
+        self.workers = []
+        self.shits = []
+        p = pp()
+        p.project = self
+        self.shits.append(p)
+        print 1
+        # reactor.spawnProcess(p, r"C:\Python27\python.exe", [r"E:\github\prim\pino\pino", "woker"], {})
+        python = r"C:\Python27\python.exe"
+        reactor.spawnProcess(p, python, [python, r"E:\github\prim\pino\pino", "worker"], {})
+        print 2
+
+
+        # 发出请求
+        def f(base):
+            from os.path import join, isfile, isdir
+            for name in os.listdir(base):
+                if name[0] == ".":
+                    continue
+                path = join(base, name)
+                path = path.replace("/", "\\")
+                if isdir(path):
+                    #                                   .svn .git
+                    if path in self.skip_directories or os.path.basename(path) in self.skip_directories:
+                        continue
+                    f(path)
+
+                elif isfile(path):
+                    self.on_file_created(path)
+
+
+        self.inrpc = True
+        for path in self.sources:
+            # filesystem.watch(path)
+            f(path)
+        self.inrpc = False
+        pass
+
+        # 请求结束时 做结束
+        # 检查
+
+    def init_by_one_process(self):
         def f(base):
             from os.path import join, isfile, isdir
             for name in os.listdir(base):
@@ -237,7 +372,9 @@ class Project(object):
         file_id = self.file_id
         self.file_pathes[file_id] = path
         self.file_pathes[path] = file_id
-        self.parse_file(path, file_extension, file_id)
+        # self.parse_file(path, file_extension, file_id)
+        self.workers[0].dosomething("parse_file", path, file_extension, file_id)
+        self.rpc_counter.add(file_id)
 
     def on_file_deleted(self, path):
         log.info("%s on_file_deleted %s", self, path)
@@ -293,9 +430,6 @@ class Project(object):
             binary = rf.read()
             self.bytes += len(binary)
             source = self.bytes_to_string(binary)
-            if not source:
-                log.debug("%s parse_file encoding error %s", self, path)
-                return 
             self.file_contents[file_id] = source
 
             line = 0

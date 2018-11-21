@@ -13,6 +13,10 @@ def debug(fmt, *args):
     else:
         print(time.asctime(), fmt)
 
+import sys
+if "worker" in sys.argv:
+    def debug(*args, **kw): pass
+
 info = debug
 error = debug
 

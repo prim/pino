@@ -14,8 +14,9 @@ from pprint import pprint, pformat
 
 from core import Project
 from utils import uri_to_path, path_to_uri
+from twisted.internet import protocol
 
-from jsonrpc import JsonRpcProtocol
+from jsonrpc import JsonRpc
 
 class TextDocumentSyncKind:
 
@@ -426,7 +427,7 @@ class LanguageServerProtocolHandler(object):
         # log.info('Server capabilities: %s', server_capabilities)
         return server_capabilities
 
-class LanguageServerProtocol(JsonRpcProtocol):
+class LanguageServerProtocol(JsonRpc, protocol.Protocol):
 
     Handler= LanguageServerProtocolHandler
 
